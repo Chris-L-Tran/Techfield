@@ -1,0 +1,101 @@
+// import the packages used in the program
+
+import java.lang.Iterable
+import java.util.StringTokenizer
+
+// import the hadoop functions used in the program
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.{IntWritable, Text}
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
+import org.apache.hadoop.mapreduce.{Job, Mapper, Reducer}
+import scala.collection.JavaConverters._
+
+
+// start of the method WordCount
+package object WordCount
+
+
+  //create the mapper class, extending the Mapper Method
+  class MapperClass extends Mapper[Object, Text, Text, IntWritable] {
+
+    // create the variables used in reading the data from the text
+    val index = new IntWritable(1)
+    val word = new Text()
+
+    //create a new map with the parameters object, text, and context, where context is calling the Mapper class to create an object
+    override def map(key: Object, value: Text, context: Mapper[Object, Text, Text, IntWritable]#Context): Unit =  {
+
+
+      // create an iterator that uses the string tokenizer to split up the string into words
+      val iterator = new StringTokenizer(value.toString)
+
+      // a while loop for the duration of the file to be read
+      while (iterator.hasMoreTokens()) {
+
+        // read in the word as the next line in the iterator
+        word.set(iterator.nextToken())
+
+        // write the word and the location to the context
+        context.write(word, index)
+      }
+
+    }
+  }
+
+
+  // create a reducer class by calling the Reducer method and setting the parameters
+  class ReducerClass extends Reducer[Text, IntWritable, Text, IntWritable] {
+
+    //redefine the reduce class to have the specific key-value pairs. With Context
+    override def reduce(key: Text, values: Iterable[IntWritable], context: Reducer[Text, IntWritable, Text, IntWritable]#Context): Unit = {
+
+      // create a new variable that combines the values in a list together.
+      var sum = values.asScala.foldLeft(0)(_ + _.get)
+
+      // writes the new combined string to the context
+      context.write(key, new IntWritable(sum))
+    }
+  }
+
+
+  // beginning of the main class
+  def main(args: Array[String]): Unit = {
+
+    // create the config variable object based on the imported package
+    val config = new Configuration
+
+    // set up the job variable object based on the config file just created and the title word count
+    val job = Job.getInstance(config, "word count")
+
+    // sets up the the jar file to look for the mapper and reducer classes
+    job.setJarByClass(this.getClass)
+
+    // set mapper class to be the one defined as the one we created
+    job.setMapperClass(classOf[MapperClass])
+
+    // set the combiner class to be the reducer we created
+    job.setCombinerClass(classOf[ReducerClass])
+
+    // set the reducer class to be the reducer we created
+    job.setReducerClass(classOf[ReducerClass])
+
+    // define the type of output by the type of the first text taken as a parameter
+    job.setOutputKeyClass(classOf[Text])
+
+    // define the type of output of our second text parameter
+    job.setOutputKeyClass(classOf[Text]);
+
+    // define the type of class of our intwritable parameter
+    job.setOutputValueClass(classOf[IntWritable]);
+
+    // take in the input path
+    FileInputFormat.addInputPath(job, new Path(args(0)))
+
+    // take in the output path for the file
+    FileOutputFormat.setOutputPath(job, new Path(args(1)))
+
+    // the return statement when the job is complete
+    System.exit(if(job.waitForCompletion(true)) 0 else 1)
+  }
+}

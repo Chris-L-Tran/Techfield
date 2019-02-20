@@ -1,0 +1,126 @@
+val patient_data = sc.textFile("input/events.csv")
+
+val mortality_data = sc.textFile("input/mortality.csv")
+
+val patient_schema = StructType(List(
+                    StructField("patient_id", StringType, false),
+                    StructField("event_id", StringType, false),
+                    StructField("drug_id", StringType, false),
+                    StructField("date", StringType, false),
+                    StructField("alive", StringType, false)))
+
+case class Patient(patient_id:String, event_id:String, drug_id:String, date:String, alive:String)
+
+val patient_data_Row = patient_data.map{
+row => row.split(",")}.map(cols => Row(cols(0),cols(1),cols(2),cols(3),cols(4)))
+}
+
+val patient_df = patient_data_RDD.toDF("patient_id", "event_id", "drug_id", "date", "alive")
+
+
+val patient_df = sc.textFile("input/events.csv").map(_.split(",")).map(cols => Cols(cols(0), cols(1),cols(2), cols(3), cols(4))).toDF("patient_id", "event_id", "drug_id", "date", "alive")
+
+
+// start of a new test
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+
+import sqlContext.implicits._
+
+import org.apache.spark.sql._
+
+val patient_data = sc.textFile("input/events.csv")
+
+case class Event(patient_id: String, event_id: String, event_desc:String, timestamp: String, value: Integer)
+
+val patient_RDD = patient_data.map(_.split(",")).map(p => Event(p(0), p(1), p(2), p(3), p(4).toInt))
+
+
+// I think toInt is wrong changed variable to toFloat instead and it worked
+
+case class Event(patient_id: String, event_id: String, event_desc:String, timestamp: String, value: Float)
+
+val patient_RDD = patient_data.map(_.split(",")).map(p => Event(p(0), p(1), p(2), p(3), p(4).toFloat))
+
+
+val patient_DF = patient_RDD.toDF()
+
+// this line caused an error
+// could not show patient_DF
+
+patient_DF.printSchema()
+
+patient_DF.first()
+// this command works.
+
+
+val highValue = patient_DF.filter("value > 1")
+// this command passes
+// but when highValue.show is run it crashes
+
+
+
+// working with moratality data
+
+val mortality_data = sc.textFile("input/mortality.csv")
+
+case class Mortality(patient_id: String, timestamp: String, label: Integer)
+
+ val mortality_RDD = mortality_data.map(_.split(",")).map(c => Mortality(c(0), c(1), c(2).toInt))
+
+ val mortality_DF = mortality_RDD.toDF()
+
+ // mortality_DF.show worked for this case. I am not sure why it doesn't work for the first SQLContext
+
+
+
+
+// algorithm for the Event Counts
+
+1. Average Event Count for Deceased patients
+First find all patients that are deceased, then use count to find the number of events, and then average this number with the number of deceased patient_schema
+
+2. Max Event Count for Deceased patients
+
+First find all the patients that are deceased, then use max to find the highest count for event
+
+3. Min Event Count for Deceased patients
+
+First find all the patients that are deceased, then use min to find the lowest count for event
+
+4. Average Event Count for Alive patients
+
+First find all patients that are not in the mortality table, then use count to find the number of events, then average this with the number of alive patients
+
+5. Max Event Count of Alive patients
+
+First find all the patients that are not in the mortality table, then use max to find the highest count for event
+
+6. Min Event Count of Alive patients
+
+First find all the patients that are not in the mortality table, then use min to find the lowest count for event
+
+
+
+// trying to figure out the syntax for the queries
+
+// first try to merge the tables together in one table
+
+patient_DF.write.parquet("input/text_table/key=1")
+
+mortality_DF.write.parquet("input/text_table/key=2")
+
+val combined_DF = sqlContext.read.option("mergeSchema", "true").parquet("input/text_table")
+
+
+testing the schemas
+
+combined_DF.printSchema()
+
+patient_DF.printSchema()
+
+mortality_DF.printSchema()
+
+// I believe the timestamp is overridden, making the timestamp invalid
+
+val avg_count_DF = combined_DF[combined_DF.label = 1].count("event_id")/combined_DF.count("patient_id")
