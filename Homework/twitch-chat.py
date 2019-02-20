@@ -59,8 +59,8 @@ def main():
 ##          sys.exit(1)
 ##
       username = 'teh24thson'
-      client_id = 'u4q90pwgt3u47n7pmi5kbflsicq0oj'
-      token = 'oauth:jtw9xhhnx09ufm5juznnn2sf75dfm6'
+
+
       channel = "#teh24thson"
 
       bot =  (username, client_id, token, channel)
